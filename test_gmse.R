@@ -5,7 +5,7 @@
 rm(list=ls())
 
 # wd
-setwd("Desktop/GitKraken/tests_gmse/")
+setwd("Desktop/Thèse/GitKraken/tests_gmse/")
 getwd()
 
 #### tests ####
@@ -57,7 +57,7 @@ sim_budget2 <- gmse(land_ownership = TRUE, stakeholders = 2, observe_type = 0,
 # avec gmse_table
 budget_table <- gmse_table(gmse_sim = sim_budget2)
 budget_table
-# colonne "cost_unused" -> jamais max (ici 220)
+# colonne "cost_unused" -> jamais max (ce serait 220 on dirait)
 
 # on va checker comment ca se comporte quand le manager agit tous les deux ts 
 sim_freq2 <- gmse(land_ownership = TRUE, stakeholders = 2, observe_type = 0,
@@ -82,6 +82,7 @@ sim_freq_jaja <- gmse(land_ownership = TRUE, stakeholders = 2, observe_type = 0,
 ## manager n'agit jamais
 (gmse_rep_jaja <- gmse_replicates(replicates = 10, time_max = 10, plotting = F, stakeholders = 2, manage_freq = 11))
 # extinction most of le temps
+# pas agir = pas estimer la pop non plus!
 
 ## effet d'un ecart de budget
 # mm budget
@@ -178,8 +179,10 @@ for (i in 1:nbrep) {
 res_f2
 
 # premier plot des resultats
+par(mfrow=c(1,1))
 boxplot(res_f1[,1],res_f2[,1])
 boxplot(res_f1[,1+3],res_f2[,1+3])
 boxplot(res_f1[,1+6],res_f2[,1+6])
 
 # bizarre, plus de variabilite avec un plus grand ecart entre les budgets
+# parfois, le revenu des users est plus bas quand la diff de budget est plus grande
