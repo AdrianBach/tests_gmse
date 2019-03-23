@@ -136,6 +136,8 @@ for (i in 1:nbrep) {
   res_f1[i,1] <- mean(table[,2])
   res_f1[i,2] <- sd(table[,2])
   res_f1[i,3] <- 1.86*res_f1[i,2]/sqrt(ts)
+  
+  # final year's mean yield 
   res_f1[i,7] <- mean(table[,8])
   res_f1[i,8] <- sd(table[,8])
   res_f1[i,9] <- 1.86*res_f1[i,8]/sqrt(ts)
@@ -149,8 +151,8 @@ for (i in 1:nbrep) {
 }
 res_f1
 
-# avec un plus grand budget pour les 
-facteur <- 2
+# avec un plus grand budget pour les managers
+facteur <- 1.1
 
 # init table
 res_f2 <- matrix(nrow = nbrep, ncol = nbmesures*3, dimnames = list(c(1:nbrep),c("pop_mean","pop_sd","pop_95ci","dev_mean","dev_sd","dev_95ci","yield_mean","yield_sd","yield_95ci")))
@@ -165,6 +167,8 @@ for (i in 1:nbrep) {
   res_f2[i,1] <- mean(table[,2])
   res_f2[i,2] <- sd(table[,2])
   res_f2[i,3] <- 1.86*res_f2[i,2]/sqrt(ts)
+  
+  # final year's mean yield 
   res_f2[i,7] <- mean(table[,8])
   res_f2[i,8] <- sd(table[,8])
   res_f2[i,9] <- 1.86*res_f2[i,8]/sqrt(ts)
@@ -178,11 +182,40 @@ for (i in 1:nbrep) {
 }
 res_f2
 
+facteur <- 1.2
+# init table
+res_f3 <- matrix(nrow = nbrep, ncol = nbmesures*3, dimnames = list(c(1:nbrep),c("pop_mean","pop_sd","pop_95ci","dev_mean","dev_sd","dev_95ci","yield_mean","yield_sd","yield_95ci")))
+
+# loop
+for (i in 1:nbrep) {
+  sim <- gmse(time_max = 10, stakeholders = 2, land_ownership = T, manage_target = target, user_budget = budget, manager_budget = facteur*budget)
+  table <- gmse_table(sim)
+  ts <- sqrt(max(table[,1]))
+  
+  # mean pop
+  res_f3[i,1] <- mean(table[,2])
+  res_f3[i,2] <- sd(table[,2])
+  res_f3[i,3] <- 1.86*res_f3[i,2]/sqrt(ts)
+  
+  # final year's mean yield 
+  res_f3[i,7] <- mean(table[,8])
+  res_f3[i,8] <- sd(table[,8])
+  res_f3[i,9] <- 1.86*res_f3[i,8]/sqrt(ts)
+  
+  # deviation from target
+  dev <- abs(table[,2]-target)
+  res_f3[i,4] <- mean(dev)
+  res_f3[i,5] <- sd(dev)
+  res_f3[i,6] <- 1.86*res_f3[i,5]/sqrt(ts)
+  
+}
+res_f3
+
 # premier plot des resultats
 par(mfrow=c(1,1))
-boxplot(res_f1[,1],res_f2[,1])
-boxplot(res_f1[,1+3],res_f2[,1+3])
-boxplot(res_f1[,1+6],res_f2[,1+6])
+boxplot(res_f1[,1],res_f2[,1],res_f3[,1])
+boxplot(res_f1[,1+3],res_f2[,1+3],res_f3[,1+3])
+boxplot(res_f1[,1+6],res_f2[,1+6],res_f3[,1+6])
 
 # bizarre, plus de variabilite avec un plus grand ecart entre les budgets
 # parfois, le revenu des users est plus bas quand la diff de budget est plus grande
