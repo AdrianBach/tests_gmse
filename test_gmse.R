@@ -4,9 +4,15 @@
 #### init ####
 rm(list=ls())
 
-# wd
-setwd("Desktop/Thèse/GitKraken/tests_gmse/")
+## wd
+#setwd("Desktop/Thèse/GitKraken/tests_gmse/")
+setwd("Documents/GitKraken/tests_gmse/")
 getwd()
+
+## packages
+
+# gmse
+library("GMSE", lib.loc="~/R/x86_64-pc-linux-gnu-library/3.5")
 
 #### tests ####
 
