@@ -225,3 +225,13 @@ boxplot(res_f1[,1+6],res_f2[,1+6],res_f3[,1+6])
 
 # bizarre, plus de variabilite avec un plus grand ecart entre les budgets
 # parfois, le revenu des users est plus bas quand la diff de budget est plus grande
+
+###################################################################################
+
+# fini d'ajouter l'action threshold, on va tester ca tsai
+simtest_at <- gmse(land_ownership = TRUE, stakeholders = 2, observe_type = 0,
+                   res_death_K = 2000, manage_target = 1000, RESOURCE_ini = 1000,
+                   user_budget = 1000, manager_budget = 1000, res_consume = 1,
+                   scaring = TRUE, plotting = T, time_max = 10, action_thres = 0.1, budget_bonus = 0.1)
+
+plot_gmse_effort(simtest_at)
