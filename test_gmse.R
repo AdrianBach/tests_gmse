@@ -235,3 +235,29 @@ simtest_at <- gmse(land_ownership = TRUE, stakeholders = 2, observe_type = 0,
                    scaring = TRUE, plotting = T, time_max = 10, action_thres = 0.1, budget_bonus = 0.1)
 
 plot_gmse_effort(simtest_at)
+
+# ok bah feu aux simulations
+# je commence par qui?
+# les trucs pour le poster
+# une simul qui montre bien ce qu'il se passe
+# une figure qui montre l'effet sur la qualidad
+# du coup variable proxy de la qualidad de la conservation avec une du revenu des usagers pour differents thresholds, dont 0 correspondant a agir a chaque fois
+
+# pour les trucs au cours du temps y a des chances qu'il faille aller dans le code gmse.R
+# tu peux checker la fonction qui sert a plotter A FAIRE
+
+# un vecteur avec des valeurs de AT
+at <- seq(0,0.5,0.1)
+
+# un pour le budget bonus
+bb <- seq(0,0.5,0.1)
+
+# un nombre de ts
+ts <- 10
+
+# un nombre de replicats
+rep <- 10
+
+# une structure pour acceuillir les resultats
+# est-ce qu'on ferait pas un objet avec n = at*bb couches
+
