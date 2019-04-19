@@ -244,7 +244,7 @@ plot_gmse_effort(simtest_at)
 # du coup variable proxy de la qualidad de la conservation avec une du revenu des usagers pour differents thresholds, dont 0 correspondant a agir a chaque fois
 
 # pour les trucs au cours du temps y a des chances qu'il faille aller dans le code gmse.R
-# tu peux checker la fonction qui sert a plotter A FAIRE
+# tu peux checker la fonction qui sert a plotter A FAIRE A FAIRE A FAIRE A FAIRE
 
 # un vecteur avec des valeurs de AT
 at <- seq(0,0.5,0.1)
@@ -260,4 +260,13 @@ rep <- 10
 
 # une structure pour acceuillir les resultats
 # est-ce qu'on ferait pas un objet avec n = at*bb couches
+columns <- c("rep", "at", "bb", "init_budg", "init_res", "act_dev", "ext_prob", "final yield", "max_diff_yield", "inac_ts") 
+results <- array(data=NA, dim = c(length(columns), rep, length(at)*length(bb)), dimnames = list(NULL,columns,NULL))
+print(results)
+# ok le tableau est pret fo le remplir mtn
 
+# preparer un tableau pour les stats
+avrg_columns <- c("rep", "sd", "95ci", "at", "sd", "95ci", "bb", "sd", "95ci", "init_budg", "sd", "95ci", "init_res", "sd", "95ci", "act_dev", "sd", "95ci", "ext_prob", "sd", "95ci", "final yield", "sd", "95ci", "max_diff_yield", "sd", "95ci", "inac_ts", "sd", "95ci")
+avrg_results <- matrix(data = NA, nrow = length(at)*length(bb), ncol = length(avrg_columns), dimnames = list(NULL,avrg_columns))
+print(avrg_results)
+# ok c'est pret
