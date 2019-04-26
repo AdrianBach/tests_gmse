@@ -99,7 +99,7 @@ gmse_rep_same
 gmse_rep_twice <- gmse_replicates(replicates = 10, time_max = 10, plotting = F, stakeholders = 2, manager_budget = 2000)
 gmse_rep_twice
 
-# Attention: seul les valeurs du dernier timestep sont presentees
+# Attention: seules les valeurs du dernier timestep sont presentees
 # parfait pour les mesures de finalite genre la proba d'extinction sur la duree de la finalite, l'ecart a la target apres n timestep, final crop yield
 ## IMPORTANT: ça change vraiment pas masse la policy, car un changement de 10 est suffisant pour assurer la conservation
 ## Aussi, si manager agit pas, pas d'estimation de la pop !! attention a ca cdm
@@ -232,7 +232,10 @@ boxplot(res_f1[,1+6],res_f2[,1+6],res_f3[,1+6])
 simtest_at <- gmse(land_ownership = TRUE, stakeholders = 2, observe_type = 0,
                    res_death_K = 2000, manage_target = 1000, RESOURCE_ini = 1000,
                    user_budget = 1000, manager_budget = 1000, res_consume = 1,
-                   scaring = TRUE, plotting = T, time_max = 10, action_thres = 0.1, budget_bonus = 0.1)
+                   scaring = F, plotting = T, time_max = 20, action_thres = 0.05, budget_bonus = 0.1)
+
+# check si ca fonctionne la con de ca
+simtest_at$paras[,106:108]
 
 plot_gmse_effort(simtest_at)
 
@@ -247,26 +250,89 @@ plot_gmse_effort(simtest_at)
 # tu peux checker la fonction qui sert a plotter A FAIRE A FAIRE A FAIRE A FAIRE
 
 # un vecteur avec des valeurs de AT
-at <- seq(0,0.5,0.1)
+at <- seq(0,0.10,0.05)
 
 # un pour le budget bonus
-bb <- seq(0,0.5,0.1)
+bb <- seq(0,0.2,0.1)
 
 # un nombre de ts
 ts <- 10
 
 # un nombre de replicats
-rep <- 10
+rep <- 5
+
+# un budget initial
+bud_ini <- 1000
+
+# initial resources
+res_ini <- 1000
+
+# manager target
+man_tar <- 1000
 
 # une structure pour acceuillir les resultats
 # est-ce qu'on ferait pas un objet avec n = at*bb couches
-columns <- c("rep", "at", "bb", "init_budg", "init_res", "act_dev", "ext_prob", "final yield", "max_diff_yield", "inac_ts") 
-results <- array(data=NA, dim = c(length(columns), rep, length(at)*length(bb)), dimnames = list(NULL,columns,NULL))
+columns <- c("rep", "at", "bb", "init_budg", "init_res", "act_dev", "extinct", "final yield", "max_diff_yield", "inac_ts") 
+results <- array(data=NA, dim = c(rep, length(columns), length(at)*length(bb)), dimnames = list(NULL,columns,NULL))
 print(results)
 # ok le tableau est pret fo le remplir mtn
 
 # preparer un tableau pour les stats
-avrg_columns <- c("rep", "sd", "95ci", "at", "sd", "95ci", "bb", "sd", "95ci", "init_budg", "sd", "95ci", "init_res", "sd", "95ci", "act_dev", "sd", "95ci", "ext_prob", "sd", "95ci", "final yield", "sd", "95ci", "max_diff_yield", "sd", "95ci", "inac_ts", "sd", "95ci")
+avrg_columns <- c("rep", "sd", "95ci", "at", "sd", "95ci", "bb", "sd", "95ci", "init_budg", "sd", "95ci", "init_res", "sd", "95ci", "act_dev", "sd", "95ci", "ext_prob", "final yield", "sd", "95ci", "max_diff_yield", "sd", "95ci", "inac_ts", "sd", "95ci")
 avrg_results <- matrix(data = NA, nrow = length(at)*length(bb), ncol = length(avrg_columns), dimnames = list(NULL,avrg_columns))
 print(avrg_results)
 # ok c'est pret
+
+# bon maintenant faut balancer les simuls
+
+# initialize a param combo tracker
+param_set <- 1
+
+# sim loop
+for (i in 1:length(at)) {
+  for (j in 1:length(bb)) {
+    for (k in 1:rep) {
+      # lancer simul
+      sim <- gmse(land_ownership = TRUE, stakeholders = 3, observe_type = 0,
+                  res_death_K = 2000, manage_target = man_tar, RESOURCE_ini = res_ini,
+                  user_budget = bud_ini, manager_budget = bud_ini, res_consume = 1,
+                  scaring = TRUE, plotting = F, time_max = ts, action_thres = at[i], budget_bonus = bb[j])
+      
+      # recuperer les resultats
+      tab <- gmse_table(sim)
+      
+      # ecrire dans results les infos correspondantes
+      # replicate
+      results[k,1,param_set] <- k
+      
+      # at value
+      results[k,2,param_set] <- at[i]
+      
+      # bb value
+      results[k,3,param_set] <- bb[j]
+      
+      # initial budget
+      results[k,4,param_set] <- bud_ini
+      
+      # initial resource pop
+      results[k,5,param_set] <- res_ini
+      
+      # actual pop deviation from target
+      results[k,6,param_set] <- tab[dim(tab)[1],2]/man_tar - 1
+      
+      # has extinction occured?
+      results[k,7,param_set] <- ifelse(tab[dim(tab)[1],2] < 20, 1, 0)
+      
+      # total final yield
+      results[k,8,param_set] <- tab[dim(tab)[1],10]
+      
+      # maximal difference in yield between users
+      # to do 
+      
+      # timesteps spend inactive?
+      results[k,10,param_set] <- length(sim$paras[,107])-sum(sim$paras[,107])
+    }
+    # increment tracker
+    param_set <- param_set + 1
+  }
+}
