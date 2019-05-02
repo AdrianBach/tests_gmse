@@ -298,8 +298,8 @@ for (i in 1:length(at)) {
                   user_budget = bud_ini, manager_budget = bud_ini, res_consume = 1,
                   scaring = TRUE, plotting = F, time_max = ts, action_thres = at[i], budget_bonus = bb[j])
       
-      # recuperer les resultats
-      tab <- gmse_table(sim)
+      # last time step
+      final_ts <- dim(sim$paras)[1]
       
       # ecrire dans results les infos correspondantes
       # replicate
@@ -318,21 +318,24 @@ for (i in 1:length(at)) {
       results[k,5,param_set] <- res_ini
       
       # actual pop deviation from target
-      results[k,6,param_set] <- tab[dim(tab)[1],2]/man_tar - 1
+      #results[k,6,param_set] <- tab[dim(tab)[1],2]/man_tar - 1
+      results[k,6,param_set] <- dim(sim$resource[[final_ts]])[1]/man_tar - 1
       
       # has extinction occured?
-      results[k,7,param_set] <- ifelse(tab[dim(tab)[1],2] < 20, 1, 0)
+      results[k,7,param_set] <- ifelse(dim(sim$resource[[final_ts]])[1] < 20, 1, 0)
       
       # total final yield
-      results[k,8,param_set] <- tab[dim(tab)[1],10]
+      results[k,8,param_set] <- sum(sim$agents[[final_ts]][,16])
       
-      # maximal difference in yield between users
-      # to do 
+      # maximal difference between users yield
+      results[k,8,param_set] <- round((max(sim$agents[[final_ts]][,16]) - min(sim$agents[[final_ts]][-1,16]))/max(sim$agents[[final_ts]][,16]),2)
       
       # timesteps spend inactive?
       results[k,10,param_set] <- length(sim$paras[,107])-sum(sim$paras[,107])
     }
+    
     # increment tracker
     param_set <- param_set + 1
   }
 }
+results
