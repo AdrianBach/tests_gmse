@@ -328,7 +328,7 @@ for (i in 1:length(at)) {
       results[k,8,param_set] <- sum(sim$agents[[final_ts]][,16])
       
       # maximal difference between users yield
-      results[k,8,param_set] <- round((max(sim$agents[[final_ts]][,16]) - min(sim$agents[[final_ts]][-1,16]))/max(sim$agents[[final_ts]][,16]),2)
+      results[k,9,param_set] <- round((max(sim$agents[[final_ts]][,16]) - min(sim$agents[[final_ts]][-1,16]))/max(sim$agents[[final_ts]][,16]),2)
       
       # timesteps spend inactive?
       results[k,10,param_set] <- length(sim$paras[,107])-sum(sim$paras[,107])
