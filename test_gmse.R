@@ -317,7 +317,7 @@ for (i in 1:length(at)) {
       results_large[k,5,param_set] <- res_ini
       
       # has extinction occured?
-      results_large[k,6,param_set] <- ifelse(dim(sim$resource[[final_ts-1]])[1] < 20, 1, 0)
+      results_large[k,6,param_set] <- ifelse(dim(sim$resource[[final_ts]])[1] < 20, 1, 0)
       
       if (results_large[k,6,param_set] != 0) {
         # actual pop deviation from target
@@ -333,7 +333,7 @@ for (i in 1:length(at)) {
         # timesteps spend inactive?
         results_large[k,10,param_set] <- round(final_ts-sum(sim$paras[,107]),1)
       }
-      else{
+      else {
         # actual pop deviation from target
       #results_large[k,6,param_set] <- tab[dim(tab)[1],2]/man_tar - 1
       results_large[k,7,param_set] <- dim(sim$resource[[final_ts]])[1]/man_tar - 1
@@ -374,3 +374,33 @@ avrg_results_large
 
 write.csv(avrg_results_large, file = "first_batch.csv", row.names = F)
 
+# trace des figures
+library(gplots)
+library(ggplot2)
+
+# changer nom colonnes
+colnames(avrg_results_large) <- c("rep", "at", "bb", "init_budg", "init_res", "ext_prob", "act_dev", "act_dev_sd", "act_dev_95ci", "fin_yield", "fin_yield_sd", "fin_yield_95ci", "max_diff_yield", "max_diff_yield_sd", "max_diff_yield_95ci", "inac_ts", "inac_ts_sd", "inac_ts_95ci")
+
+# deviation de la pop reelle en fonction du action threshold
+fig1_tab <- as.data.frame(subset(avrg_results_large, bb == 0.1))
+fig1_tab$at <- as.factor(fig1_tab$at)
+
+plot(fig1_tab[,2], fig1_tab[,7], type = "b", xlab = "Action threshold value", ylab = "Actual pop deviation from target")
+
+plotCI(x = fig1_tab[,2], y = fig1_tab[,7], uiw = fig1_tab[,8])
+
+# si j'arrive a rbind toutes les simul par combinanaison de parametre
+p <- ggplot(fig1_tab, aes(x=at, y=act_dev)) + 
+  geom_dotplot(binaxis='y', stackdir='center')
+print(p)
+# utiliser geom_crossbar()
+p + stat_summary(fun.data="mean_sdl", fun.args = list(mult=1), 
+                 geom="crossbar", width=0.5)
+# Utiliser geom_errorbar()
+p + stat_summary(fun.data=mean_sdl, fun.args = list(mult=1), 
+                 geom="errorbar", color="red", width=0.2) +
+  stat_summary(fun.y=mean, geom="point", color="red")
+
+# Utiliser geom_pointrange()
+p + stat_summary(fun.data=mean_sdl, fun.args = list(mult=1), 
+                 geom="pointrange", color="red")
