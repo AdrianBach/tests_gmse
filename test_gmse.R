@@ -231,7 +231,7 @@ boxplot(res_f1[,1+6],res_f2[,1+6],res_f3[,1+6])
 # fini d'ajouter l'action threshold, on va tester ca tsai
 simtest_at <- gmse(land_ownership = TRUE, stakeholders = 2, observe_type = 0,
                    res_death_K = 2000, manage_target = 1000, RESOURCE_ini = 1000,
-                   user_budget = 1000, manager_budget = 1000, res_consume = 1,
+                   user_budget = 1000, manager_budget = 1000,
                    scaring = F, plotting = T, time_max = 20, action_thres = 0.05, budget_bonus = 0.1)
 
 # check si ca fonctionne la con de ca
@@ -250,16 +250,16 @@ plot_gmse_effort(simtest_at)
 # tu peux checker la fonction qui sert a plotter A FAIRE A FAIRE A FAIRE A FAIRE
 
 # un vecteur avec des valeurs de AT
-at <- seq(0,0.10,0.05)
+at <- seq(0,0.05,0.05)
 
 # un pour le budget bonus
-bb <- seq(0,0.2,0.1)
+bb <- seq(0,0.1,0.1)
 
 # un nombre de ts
 ts <- 10
 
 # un nombre de replicats
-rep <- 5
+rep <- 3
 
 # un budget initial
 bud_ini <- 1000
@@ -273,13 +273,13 @@ man_tar <- 1000
 # une structure pour acceuillir les resultats
 # est-ce qu'on ferait pas un objet avec n = at*bb couches
 columns <- c("rep", "at", "bb", "init_budg", "init_res", "extinct", "act_dev", "final yield", "max_diff_yield", "inac_ts") 
-results <- array(data=NA, dim = c(rep, length(columns), length(at)*length(bb)), dimnames = list(NULL,columns,NULL))
+results_large <- array(data=NA, dim = c(rep, length(columns), length(at)*length(bb)), dimnames = list(NULL,columns,NULL))
 print(results)
 # ok le tableau est pret fo le remplir mtn
 
 # preparer un tableau pour les stats
 avrg_columns <- c("rep", "at", "bb", "init_budg", "init_res", "ext_prob", "act_dev", "sd", "95ci", "final yield", "sd", "95ci", "max_diff_yield", "sd", "95ci", "inac_ts", "sd", "95ci")
-avrg_results <- matrix(data = NA, nrow = length(at)*length(bb), ncol = length(avrg_columns), dimnames = list(NULL,avrg_columns))
+avrg_results_large <- matrix(data = NA, nrow = length(at)*length(bb), ncol = length(avrg_columns), dimnames = list(NULL,avrg_columns))
 print(avrg_results)
 # ok c'est pret
 
@@ -298,61 +298,77 @@ for (i in 1:length(at)) {
                   scaring = TRUE, plotting = F, time_max = ts, action_thres = at[i], budget_bonus = bb[j])
       
       # last time step
-      final_ts <- dim(sim$paras)[1]
+      final_ts <- length(which(sim$paras[,1] != 0))
       
       # ecrire dans results les infos correspondantes
       # replicate
-      results[k,1,param_set] <- k
+      results_large[k,1,param_set] <- k
       
       # at value
-      results[k,2,param_set] <- at[i]
+      results_large[k,2,param_set] <- at[i]
       
       # bb value
-      results[k,3,param_set] <- bb[j]
+      results_large[k,3,param_set] <- bb[j]
       
       # initial budget
-      results[k,4,param_set] <- bud_ini
+      results_large[k,4,param_set] <- bud_ini
       
       # initial resource pop
-      results[k,5,param_set] <- res_ini
+      results_large[k,5,param_set] <- res_ini
       
       # has extinction occured?
-      results[k,7,param_set] <- ifelse(dim(sim$resource[[final_ts]])[1] < 20, 1, 0)
+      results_large[k,6,param_set] <- ifelse(dim(sim$resource[[final_ts-1]])[1] < 20, 1, 0)
       
-      # actual pop deviation from target
-      #results[k,6,param_set] <- tab[dim(tab)[1],2]/man_tar - 1
-      results[k,6,param_set] <- dim(sim$resource[[final_ts]])[1]/man_tar - 1
+      if (results_large[k,6,param_set] != 0) {
+        # actual pop deviation from target
+        #results_large[k,6,param_set] <- tab[dim(tab)[1],2]/man_tar - 1
+        results_large[k,7,param_set] <- dim(sim$resource[[final_ts-1]])[1]/man_tar - 1
+        
+        # total final yield
+        results_large[k,8,param_set] <- sum(sim$agents[[final_ts-1]][,16])
+        
+        # maximal difference between users yield
+        results_large[k,9,param_set] <- round((max(sim$agents[[final_ts-1]][,16]) - min(sim$agents[[final_ts-1]][-1,16]))/max(sim$agents[[final_ts-1]][,16]),2)
+        
+        # timesteps spend inactive?
+        results_large[k,10,param_set] <- round(final_ts-sum(sim$paras[,107]),1)
+      }
+      else{
+        # actual pop deviation from target
+      #results_large[k,6,param_set] <- tab[dim(tab)[1],2]/man_tar - 1
+      results_large[k,7,param_set] <- dim(sim$resource[[final_ts]])[1]/man_tar - 1
       
       # total final yield
-      results[k,8,param_set] <- sum(sim$agents[[final_ts]][,16])
+      results_large[k,8,param_set] <- sum(sim$agents[[final_ts]][,16])
       
       # maximal difference between users yield
-      results[k,9,param_set] <- round((max(sim$agents[[final_ts]][,16]) - min(sim$agents[[final_ts]][-1,16]))/max(sim$agents[[final_ts]][,16]),2)
+      results_large[k,9,param_set] <- round((max(sim$agents[[final_ts]][,16]) - min(sim$agents[[final_ts]][-1,16]))/max(sim$agents[[final_ts]][,16]),2)
       
       # timesteps spend inactive?
-      results[k,10,param_set] <- length(sim$paras[,107])-sum(sim$paras[,107])
+      results_large[k,10,param_set] <- round(length(sim$paras[,107])-sum(sim$paras[,107]),1)
+      }
     }
     
     # increment tracker
     param_set <- param_set + 1
   }
 }
-results
+#results_large
 
 # tableau de stats
-for (i in 1:dim(results)[3]) {
-  avrg_results[i,1] <- dim(results)[1]
+for (i in 1:dim(results_large)[3]) {
+  avrg_results_large[i,1] <- dim(results_large)[1]
   for (j in 2:5) {
-    avrg_results[i,j] <- results[1,j,i]
+    avrg_results_large[i,j] <- results_large[1,j,i]
   }
-  avrg_results[i,6] <- round(sum(results[,6,i])/dim(results)[1],2)
+  avrg_results_large[i,6] <- round(sum(results_large[,6,i])/dim(results_large)[1],2)
   zz <- 0
-  for (k in 7:dim(results)[2]) {
-    avrg_results[i,k+zz] <- mean(results[,k,i])
-    avrg_results[i,k+zz+1] <- sd(results[,k,i])
-    avrg_results[i,k+zz+2] <- 1.86*avrg_results[i,k+zz+1]/sqrt(rep)
+  for (k in 7:dim(results_large)[2]) {
+    avrg_results_large[i,k+zz] <- mean(results_large[,k,i])
+    avrg_results_large[i,k+zz+1] <- sd(results_large[,k,i])
+    avrg_results_large[i,k+zz+2] <- 1.86*avrg_results_large[i,k+zz+1]/sqrt(rep)
     zz <- zz + 2
   }
 }
-avrg_results
+avrg_results_large
 
