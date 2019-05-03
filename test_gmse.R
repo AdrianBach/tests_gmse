@@ -250,16 +250,16 @@ plot_gmse_effort(simtest_at)
 # tu peux checker la fonction qui sert a plotter A FAIRE A FAIRE A FAIRE A FAIRE
 
 # un vecteur avec des valeurs de AT
-at <- seq(0,0.05,0.05)
+at <- seq(0,0.5,0.05)
 
 # un pour le budget bonus
-bb <- seq(0,0.1,0.1)
+bb <- seq(0,0.5,0.1)
 
 # un nombre de ts
-ts <- 10
+ts <- 20
 
 # un nombre de replicats
-rep <- 3
+rep <- 10
 
 # un budget initial
 bud_ini <- 1000
@@ -295,7 +295,7 @@ for (i in 1:length(at)) {
       # lancer simul
       sim <- gmse(land_ownership = TRUE, stakeholders = 3, observe_type = 0, manage_target = man_tar, RESOURCE_ini = res_ini,
                   user_budget = bud_ini, manager_budget = bud_ini,
-                  scaring = TRUE, plotting = F, time_max = ts, action_thres = at[i], budget_bonus = bb[j])
+                  scaring = F, plotting = F, time_max = ts, action_thres = at[i], budget_bonus = bb[j])
       
       # last time step
       final_ts <- length(which(sim$paras[,1] != 0))
@@ -371,4 +371,6 @@ for (i in 1:dim(results_large)[3]) {
   }
 }
 avrg_results_large
+
+write.csv(avrg_results_large, file = "first_batch.csv", row.names = F)
 
