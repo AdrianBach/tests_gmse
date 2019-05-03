@@ -228,6 +228,7 @@ boxplot(res_f1[,1+6],res_f2[,1+6],res_f3[,1+6])
 
 ###################################################################################
 
+#### tests ####
 # fini d'ajouter l'action threshold, on va tester ca tsai
 simtest_at <- gmse(land_ownership = TRUE, stakeholders = 2, observe_type = 0,
                    res_death_K = 2000, manage_target = 1000, RESOURCE_ini = 1000,
@@ -248,6 +249,8 @@ plot_gmse_effort(simtest_at)
 
 # pour les trucs au cours du temps y a des chances qu'il faille aller dans le code gmse.R
 # tu peux checker la fonction qui sert a plotter A FAIRE A FAIRE A FAIRE A FAIRE
+
+#### simul ####
 
 # un vecteur avec des valeurs de AT
 at <- seq(0,0.5,0.05)
@@ -278,7 +281,7 @@ print(results)
 # ok le tableau est pret fo le remplir mtn
 
 # preparer un tableau pour les stats
-avrg_columns <- c("rep", "at", "bb", "init_budg", "init_res", "ext_prob", "act_dev", "sd", "95ci", "final yield", "sd", "95ci", "max_diff_yield", "sd", "95ci", "inac_ts", "sd", "95ci")
+avrg_columns <- c("rep", "at", "bb", "init_budg", "init_res", "ext_prob", "act_dev", "act_dev_sd", "act_dev_95ci", "fin_yield", "fin_yield_sd", "fin_yield_95ci", "max_diff_yield", "max_diff_yield_sd", "max_diff_yield_95ci", "inac_ts", "inac_ts_sd", "inac_ts_95ci")
 avrg_results_large <- matrix(data = NA, nrow = length(at)*length(bb), ncol = length(avrg_columns), dimnames = list(NULL,avrg_columns))
 print(avrg_results)
 # ok c'est pret
@@ -317,12 +320,13 @@ for (i in 1:length(at)) {
       results_large[k,5,param_set] <- res_ini
       
       # has extinction occured?
-      results_large[k,6,param_set] <- ifelse(dim(sim$resource[[final_ts]])[1] < 20, 1, 0)
+      #results_large[k,6,param_set] <- ifelse(dim(sim$resource[[final_ts-1]])[1] < 20, 1, 0)
+      results_large[k,6,param_set] <- ifelse(final_ts < dim(sim$paras)[1], 1, 0)
       
       if (results_large[k,6,param_set] != 0) {
         # actual pop deviation from target
         #results_large[k,6,param_set] <- tab[dim(tab)[1],2]/man_tar - 1
-        results_large[k,7,param_set] <- dim(sim$resource[[final_ts-1]])[1]/man_tar - 1
+        results_large[k,7,param_set] <- abs(dim(sim$resource[[final_ts-1]])[1]/man_tar - 1)
         
         # total final yield
         results_large[k,8,param_set] <- sum(sim$agents[[final_ts-1]][,16])
@@ -336,7 +340,7 @@ for (i in 1:length(at)) {
       else {
         # actual pop deviation from target
       #results_large[k,6,param_set] <- tab[dim(tab)[1],2]/man_tar - 1
-      results_large[k,7,param_set] <- dim(sim$resource[[final_ts]])[1]/man_tar - 1
+      results_large[k,7,param_set] <- abs(dim(sim$resource[[final_ts]])[1]/man_tar - 1)
       
       # total final yield
       results_large[k,8,param_set] <- sum(sim$agents[[final_ts]][,16])
@@ -354,6 +358,8 @@ for (i in 1:length(at)) {
   }
 }
 #results_large
+
+# cette fois oubli de faire abs() de la deviation
 
 # tableau de stats
 for (i in 1:dim(results_large)[3]) {
@@ -374,7 +380,7 @@ avrg_results_large
 
 write.csv(avrg_results_large, file = "first_batch.csv", row.names = F)
 
-# trace des figures
+#### trace des figures ####
 library(gplots)
 library(ggplot2)
 
@@ -382,14 +388,34 @@ library(ggplot2)
 colnames(avrg_results_large) <- c("rep", "at", "bb", "init_budg", "init_res", "ext_prob", "act_dev", "act_dev_sd", "act_dev_95ci", "fin_yield", "fin_yield_sd", "fin_yield_95ci", "max_diff_yield", "max_diff_yield_sd", "max_diff_yield_95ci", "inac_ts", "inac_ts_sd", "inac_ts_95ci")
 
 # deviation de la pop reelle en fonction du action threshold
-fig1_tab <- as.data.frame(subset(avrg_results_large, bb == 0.1))
-fig1_tab$at <- as.factor(fig1_tab$at)
+fig1_tab <- subset(avrg_results_large, bb == 0.1)
+#fig1_tab$at <- as.factor(fig1_tab$at)
 
-plot(fig1_tab[,2], fig1_tab[,7], type = "b", xlab = "Action threshold value", ylab = "Actual pop deviation from target")
+fig1_tab <- fig1_tab[-c(2,4,6,8,10,11),]
 
-plotCI(x = fig1_tab[,2], y = fig1_tab[,7], uiw = fig1_tab[,8])
+plot(fig1_tab[,2], fig1_tab[,7], type = "p", pch = 16, xlab = "Action threshold value", ylab = "Actual pop deviation from target")
 
-# si j'arrive a rbind toutes les simul par combinanaison de parametre
+plotCI(x = fig1_tab[,2], y = fig1_tab[,7]*100, uiw = fig1_tab[,8]*100/2, pch = 16, gap=0, xlab = "Action threshold value", ylab = "Actual pop deviation from target")
+
+p1 <-  ggplot(as.data.frame(fig1_tab), aes(x=as.factor(at), y=act_dev)) + 
+  geom_bar(position=position_dodge(), stat="identity", colour="black", fill="light green") +
+  geom_errorbar(aes(ymin=act_dev, ymax=act_dev+act_dev_sd),
+                width=.2,
+                position=position_dodge(.9)) +
+  xlab("Action Threshold Value (% of population target)") +
+  ylab("Actual population deviation from target")
+p1
+
+p2 <-  ggplot(as.data.frame(fig1_tab), aes(x=as.factor(at), y=fin_yield/100)) + 
+  geom_bar(position=position_dodge(), stat="identity", colour="black", fill="orange1") +
+  geom_errorbar(aes(ymin=fin_yield/100, ymax=fin_yield/100+fin_yield_sd/100),
+                width=.2,
+                position=position_dodge(.9)) +
+  xlab("Action Threshold Value (% of population target)") +
+  ylab("Total final users yield (??)")
+p2
+
+# si j'arrive a rbind toutes les simul par combinanaison de parametres
 p <- ggplot(fig1_tab, aes(x=at, y=act_dev)) + 
   geom_dotplot(binaxis='y', stackdir='center')
 print(p)
