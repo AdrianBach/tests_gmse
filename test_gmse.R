@@ -233,14 +233,54 @@ boxplot(res_f1[,1+6],res_f2[,1+6],res_f3[,1+6])
 simtest_at <- gmse(land_ownership = TRUE, stakeholders = 2, observe_type = 0,
                    res_death_K = 2000, manage_target = 1000, RESOURCE_ini = 1000,
                    user_budget = 1000, manager_budget = 1000,
-                   scaring = F, plotting = T, time_max = 20, action_thres = 0.05, budget_bonus = 0.1)
+                   scaring = F, plotting = T, time_max = 20, action_thres = 0.1, budget_bonus = 0.1, lambda = 0.25)
 
 # check si ca fonctionne la con de ca
 simtest_at$paras[,106:108]
 
 plot_gmse_effort(simtest_at)
 
-# ok bah feu aux simulations
+#### premiere figure ####
+# simul avec action threshold
+w_at1 <- simtest_at
+w_at1 <- gmse(land_ownership = TRUE, stakeholders = 2, observe_type = 0,
+                   res_death_K = 2000, manage_target = 1000, RESOURCE_ini = 1000,
+                   user_budget = 1000, manager_budget = 1000,
+                   scaring = F, plotting = T, time_max = 20, action_thres = 0.1, budget_bonus = 0.1, lambda = 0.27)
+
+# save manager activity
+w_at1_polup <- w_at1$paras[,107]
+w_at1_polup
+
+# save actions
+tmax <- dim(w_at1$paras)[1]
+w_at1_act <- rep(NA, tmax)
+for (i in 1:tmax) {
+  w_at1_act[i] <- w_at1$action[[i]][1,9,2] + w_at1$action[[i]][1,9,3]
+}
+w_at1_act
+
+# without at
+wo_at1 <- gmse(land_ownership = TRUE, stakeholders = 2, observe_type = 0,
+             res_death_K = 2000, manage_target = 1000, RESOURCE_ini = 1000,
+             user_budget = 1000, manager_budget = 1000,
+             scaring = F, plotting = T, time_max = 20, action_thres = 0.0, budget_bonus = 0.1, lambda = 0.275)
+
+# save manager activity
+wo_at1_polup <- wo_at1$paras[,107]
+wo_at1_polup
+
+# save actions
+tmax <- dim(wo_at1$paras)[1]
+wo_at1_act <- rep(NA, tmax)
+for (i in 1:tmax) {
+  wo_at1_act[i] <- wo_at1$action[[i]][1,9,2] + wo_at1$action[[i]][1,9,3]
+}
+wo_at1_act
+
+# petit plot des fams
+
+#### ok bah feu aux simulations ####
 # je commence par qui?
 # les trucs pour le poster
 # une simul qui montre bien ce qu'il se passe
@@ -253,16 +293,16 @@ plot_gmse_effort(simtest_at)
 #### simul ####
 
 # un vecteur avec des valeurs de AT
-at <- seq(0,0.5,0.05)
+at <- seq(0,0.5,0.1)
 
 # un pour le budget bonus
-bb <- seq(0,0.5,0.1)
+bb <- seq(0,0.1,0.1)
 
 # un nombre de ts
-ts <- 20
+ts <- 10
 
 # un nombre de replicats
-rep <- 10
+rep <- 30
 
 # un budget initial
 bud_ini <- 1000
@@ -273,17 +313,20 @@ res_ini <- 1000
 # manager target
 man_tar <- 1000
 
+# growth rate
+lbd <- 0.27
+
 # une structure pour acceuillir les resultats
 # est-ce qu'on ferait pas un objet avec n = at*bb couches
-columns <- c("rep", "at", "bb", "init_budg", "init_res", "extinct", "act_dev", "final yield", "max_diff_yield", "inac_ts") 
-results_large <- array(data=NA, dim = c(rep, length(columns), length(at)*length(bb)), dimnames = list(NULL,columns,NULL))
-print(results)
+columns <- c("rep", "at", "bb", "init_budg", "init_res", "lambda", "extinct", "act_dev", "final yield", "max_diff_yield", "inac_ts") 
+results_batch2 <- array(data=NA, dim = c(rep, length(columns), length(at)*length(bb)), dimnames = list(NULL,columns,NULL))
+print(results_batch2)
 # ok le tableau est pret fo le remplir mtn
 
 # preparer un tableau pour les stats
-avrg_columns <- c("rep", "at", "bb", "init_budg", "init_res", "ext_prob", "act_dev", "act_dev_sd", "act_dev_95ci", "fin_yield", "fin_yield_sd", "fin_yield_95ci", "max_diff_yield", "max_diff_yield_sd", "max_diff_yield_95ci", "inac_ts", "inac_ts_sd", "inac_ts_95ci")
-avrg_results_large <- matrix(data = NA, nrow = length(at)*length(bb), ncol = length(avrg_columns), dimnames = list(NULL,avrg_columns))
-print(avrg_results)
+avrg_columns <- c("rep", "at", "bb", "init_budg", "init_res", "lambda", "ext_prob", "act_dev", "act_dev_sd", "act_dev_95ci", "fin_yield", "fin_yield_sd", "fin_yield_95ci", "max_diff_yield", "max_diff_yield_sd", "max_diff_yield_95ci", "inac_ts", "inac_ts_sd", "inac_ts_95ci")
+avrg_results_batch2 <- matrix(data = NA, nrow = length(at)*length(bb), ncol = length(avrg_columns), dimnames = list(NULL,avrg_columns))
+print(avrg_results_batch2)
 # ok c'est pret
 
 # bon maintenant faut balancer les simuls
@@ -297,7 +340,7 @@ for (i in 1:length(at)) {
     for (k in 1:rep) {
       # lancer simul
       sim <- gmse(land_ownership = TRUE, stakeholders = 3, observe_type = 0, manage_target = man_tar, RESOURCE_ini = res_ini,
-                  user_budget = bud_ini, manager_budget = bud_ini,
+                  user_budget = bud_ini, manager_budget = bud_ini, lambda = lbd,
                   scaring = F, plotting = F, time_max = ts, action_thres = at[i], budget_bonus = bb[j])
       
       # last time step
@@ -305,51 +348,53 @@ for (i in 1:length(at)) {
       
       # ecrire dans results les infos correspondantes
       # replicate
-      results_large[k,1,param_set] <- k
+      results_batch2[k,1,param_set] <- k
       
       # at value
-      results_large[k,2,param_set] <- at[i]
+      results_batch2[k,2,param_set] <- at[i]
       
       # bb value
-      results_large[k,3,param_set] <- bb[j]
+      results_batch2[k,3,param_set] <- bb[j]
       
       # initial budget
-      results_large[k,4,param_set] <- bud_ini
+      results_batch2[k,4,param_set] <- bud_ini
       
       # initial resource pop
-      results_large[k,5,param_set] <- res_ini
+      results_batch2[k,5,param_set] <- res_ini
+      
+      # growth rate
+      results_batch2[k,6, param_set] <- lbd
       
       # has extinction occured?
-      #results_large[k,6,param_set] <- ifelse(dim(sim$resource[[final_ts-1]])[1] < 20, 1, 0)
-      results_large[k,6,param_set] <- ifelse(final_ts < dim(sim$paras)[1], 1, 0)
+      #results_batch2[k,6,param_set] <- ifelse(dim(sim$resource[[final_ts-1]])[1] < 20, 1, 0)
+      results_batch2[k,7,param_set] <- ifelse(final_ts < dim(sim$paras)[1], 1, 0)
       
-      if (results_large[k,6,param_set] != 0) {
+      if (results_batch2[k,7,param_set] != 0) {
         # actual pop deviation from target
-        #results_large[k,6,param_set] <- tab[dim(tab)[1],2]/man_tar - 1
-        results_large[k,7,param_set] <- abs(dim(sim$resource[[final_ts-1]])[1]/man_tar - 1)
+        #results_batch2[k,6,param_set] <- tab[dim(tab)[1],2]/man_tar - 1
+        results_batch2[k,8,param_set] <- abs(dim(sim$resource[[final_ts-1]])[1]/man_tar - 1)
         
         # total final yield
-        results_large[k,8,param_set] <- sum(sim$agents[[final_ts-1]][,16])
+        results_batch2[k,9,param_set] <- sum(sim$agents[[final_ts-1]][,16])
         
         # maximal difference between users yield
-        results_large[k,9,param_set] <- round((max(sim$agents[[final_ts-1]][,16]) - min(sim$agents[[final_ts-1]][-1,16]))/max(sim$agents[[final_ts-1]][,16]),2)
+        results_batch2[k,10,param_set] <- round((max(sim$agents[[final_ts-1]][,16]) - min(sim$agents[[final_ts-1]][-1,16]))/max(sim$agents[[final_ts-1]][,16]),2)
         
         # timesteps spend inactive?
-        results_large[k,10,param_set] <- round(final_ts-sum(sim$paras[,107]),1)
+        results_batch2[k,11,param_set] <- round(final_ts-sum(sim$paras[,107]),1)
       }
       else {
-        # actual pop deviation from target
-      #results_large[k,6,param_set] <- tab[dim(tab)[1],2]/man_tar - 1
-      results_large[k,7,param_set] <- abs(dim(sim$resource[[final_ts]])[1]/man_tar - 1)
+        # actual pop deviation from target in absolute values
+        results_batch2[k,8,param_set] <- abs(dim(sim$resource[[final_ts]])[1]/man_tar - 1)
       
-      # total final yield
-      results_large[k,8,param_set] <- sum(sim$agents[[final_ts]][,16])
+        # total final yield
+        results_batch2[k,9,param_set] <- sum(sim$agents[[final_ts]][,16])
       
-      # maximal difference between users yield
-      results_large[k,9,param_set] <- round((max(sim$agents[[final_ts]][,16]) - min(sim$agents[[final_ts]][-1,16]))/max(sim$agents[[final_ts]][,16]),2)
+        # maximal difference between users yield
+        results_batch2[k,10,param_set] <- round((max(sim$agents[[final_ts]][,16]) - min(sim$agents[[final_ts]][-1,16]))/max(sim$agents[[final_ts]][,16]),2)
       
-      # timesteps spend inactive?
-      results_large[k,10,param_set] <- round(length(sim$paras[,107])-sum(sim$paras[,107]),1)
+        # timesteps spend inactive?
+        results_batch2[k,11,param_set] <- round(length(sim$paras[,107])-sum(sim$paras[,107]),1)
       }
     }
     
@@ -357,38 +402,36 @@ for (i in 1:length(at)) {
     param_set <- param_set + 1
   }
 }
-#results_large
-
-# cette fois oubli de faire abs() de la deviation
+#results_batch2
 
 # tableau de stats
-for (i in 1:dim(results_large)[3]) {
-  avrg_results_large[i,1] <- dim(results_large)[1]
-  for (j in 2:5) {
-    avrg_results_large[i,j] <- results_large[1,j,i]
+for (i in 1:dim(results_batch2)[3]) {
+  avrg_results_batch2[i,1] <- dim(results_batch2)[1]
+  for (j in 2:6) {
+    avrg_results_batch2[i,j] <- results_batch2[1,j,i]
   }
-  avrg_results_large[i,6] <- round(sum(results_large[,6,i])/dim(results_large)[1],2)
+  avrg_results_batch2[i,7] <- round(sum(results_batch2[,7,i])/dim(results_batch2)[1],2)
   zz <- 0
-  for (k in 7:dim(results_large)[2]) {
-    avrg_results_large[i,k+zz] <- mean(results_large[,k,i])
-    avrg_results_large[i,k+zz+1] <- sd(results_large[,k,i])
-    avrg_results_large[i,k+zz+2] <- 1.86*avrg_results_large[i,k+zz+1]/sqrt(rep)
+  for (k in 8:dim(results_batch2)[2]) {
+    avrg_results_batch2[i,k+zz] <- mean(results_batch2[,k,i])
+    avrg_results_batch2[i,k+zz+1] <- sd(results_batch2[,k,i])
+    avrg_results_batch2[i,k+zz+2] <- 1.86*avrg_results_batch2[i,k+zz+1]/sqrt(rep)
     zz <- zz + 2
   }
 }
-avrg_results_large
+avrg_results_batch2
 
-write.csv(avrg_results_large, file = "first_batch.csv", row.names = F)
+write.csv(avrg_results_batch2, file = "batch2.csv", row.names = F)
 
 #### trace des figures ####
 library(gplots)
 library(ggplot2)
 
 # changer nom colonnes
-colnames(avrg_results_large) <- c("rep", "at", "bb", "init_budg", "init_res", "ext_prob", "act_dev", "act_dev_sd", "act_dev_95ci", "fin_yield", "fin_yield_sd", "fin_yield_95ci", "max_diff_yield", "max_diff_yield_sd", "max_diff_yield_95ci", "inac_ts", "inac_ts_sd", "inac_ts_95ci")
+# colnames(avrg_results_large) <- c("rep", "at", "bb", "init_budg", "init_res", "ext_prob", "act_dev", "act_dev_sd", "act_dev_95ci", "fin_yield", "fin_yield_sd", "fin_yield_95ci", "max_diff_yield", "max_diff_yield_sd", "max_diff_yield_95ci", "inac_ts", "inac_ts_sd", "inac_ts_95ci")
 
 # deviation de la pop reelle en fonction du action threshold
-fig1_tab <- subset(avrg_results_large, bb == 0.1)
+fig1_tab <- subset(avrg_results_batch2, bb == 0.1)
 #fig1_tab$at <- as.factor(fig1_tab$at)
 
 fig1_tab <- fig1_tab[-c(2,4,6,8,10,11),]
@@ -415,18 +458,824 @@ p2 <-  ggplot(as.data.frame(fig1_tab), aes(x=as.factor(at), y=fin_yield/100)) +
   ylab("Total final users yield (??)")
 p2
 
-# si j'arrive a rbind toutes les simul par combinanaison de parametres
-p <- ggplot(fig1_tab, aes(x=at, y=act_dev)) + 
-  geom_dotplot(binaxis='y', stackdir='center')
-print(p)
-# utiliser geom_crossbar()
-p + stat_summary(fun.data="mean_sdl", fun.args = list(mult=1), 
-                 geom="crossbar", width=0.5)
-# Utiliser geom_errorbar()
-p + stat_summary(fun.data=mean_sdl, fun.args = list(mult=1), 
-                 geom="errorbar", color="red", width=0.2) +
-  stat_summary(fun.y=mean, geom="point", color="red")
+# comment on les mets sur le meme graph ???
 
-# Utiliser geom_pointrange()
-p + stat_summary(fun.data=mean_sdl, fun.args = list(mult=1), 
-                 geom="pointrange", color="red")
+
+library(grid)
+library(dplyr)
+
+#' Create the two plots.
+plot1 <- as.data.frame(fig1_tab) %>%
+  select(as.factor(at), act_dev, act_dev_sd) %>%
+  na.omit() %>%
+  ggplot() +
+  geom_errorbar(aes(x = at, ymin=act_dev*100-act_dev_sd*100/2, ymax=act_dev*100+act_dev_sd*100/2),
+                width=.01, colour = "grey2") +
+  geom_point(aes(x = at, y = act_dev*100), size = 5, alpha = 1, colour="black", fill = "light green", stroke = 1, shape = 21) +
+  #ylab("Actual pop deviation from target (%)") +
+  #xlab("Action Threshold Value (% of population target)")
+  theme_gray(base_size = 15) +
+  theme(axis.title.x = element_blank(), axis.title.y = element_blank(), axis.line.y = element_line(size = 1, colour = "grey50"))
+
+plot2 <- as.data.frame(fig1_tab) %>%
+  select(as.factor(at), fin_yield, fin_yield_sd) %>%
+  na.omit() %>%
+  ggplot() +
+  geom_errorbar(aes(x = at, ymin=fin_yield/100-fin_yield_sd/100/2, ymax=fin_yield/100+fin_yield_sd/100/2),
+                width=.01,
+                colour="grey2") +
+  geom_point(aes(x = at, y = fin_yield/100), size = 5, alpha = 1, colour="black", fill = "orange1", stroke = 1, shape = 21) +
+  #ylab("Users final total yield (in k??)") +
+  #xlab("Action threshold value (% of pop target)") +
+  theme_gray(base_size = 15) +
+  theme(axis.title.x = element_blank(), axis.title.y = element_blank(), axis.line = element_line(size = 1, colour = "grey50"))
+  #theme(axis.title.x = "Action threshold value (% of pop target)")
+
+grid.newpage()
+grid.draw(rbind(ggplotGrob(plot1), ggplotGrob(plot2), size = "last"))
+
+#### batch 3 ####
+
+#### simul ####
+
+# un vecteur avec des valeurs de AT
+at <- seq(0,0.5,0.1)
+
+# un pour le budget bonus
+bb <- seq(0,0.1,0.1)
+
+# un nombre de ts
+ts <- 20
+
+# un nombre de replicats
+rep <- 30
+
+# un budget initial
+bud_ini <- 1000
+
+# initial resources
+res_ini <- 1000
+
+# manager target
+man_tar <- 1000
+
+# growth rate
+lbd <- 0.27
+
+# une structure pour acceuillir les resultats
+# est-ce qu'on ferait pas un objet avec n = at*bb couches
+columns <- c("rep", "at", "bb", "init_budg", "init_res", "lambda", "extinct", "act_dev", "final yield", "max_diff_yield", "inac_ts") 
+results_batch3 <- array(data=NA, dim = c(rep, length(columns), length(at)*length(bb)), dimnames = list(NULL,columns,NULL))
+print(results_batch3)
+# ok le tableau est pret fo le remplir mtn
+
+# preparer un tableau pour les stats
+avrg_columns <- c("rep", "at", "bb", "init_budg", "init_res", "lambda", "ext_prob", "act_dev", "act_dev_sd", "act_dev_95ci", "fin_yield", "fin_yield_sd", "fin_yield_95ci", "max_diff_yield", "max_diff_yield_sd", "max_diff_yield_95ci", "inac_ts", "inac_ts_sd", "inac_ts_95ci")
+avrg_results_batch3 <- matrix(data = NA, nrow = length(at)*length(bb), ncol = length(avrg_columns), dimnames = list(NULL,avrg_columns))
+print(avrg_results_batch3)
+# ok c'est pret
+
+# bon maintenant faut balancer les simuls
+
+# initialize a param combo tracker
+param_set <- 1
+
+# sim loop
+for (i in 1:length(at)) {
+  for (j in 1:length(bb)) {
+    for (k in 1:rep) {
+      # lancer simul
+      sim <- gmse(land_ownership = TRUE, stakeholders = 3, observe_type = 0, manage_target = man_tar, RESOURCE_ini = res_ini,
+                  user_budget = bud_ini, manager_budget = bud_ini, lambda = lbd,
+                  scaring = F, plotting = F, time_max = ts, action_thres = at[i], budget_bonus = bb[j])
+      
+      # last time step
+      final_ts <- length(which(sim$paras[,1] != 0))
+      
+      # ecrire dans results les infos correspondantes
+      # replicate
+      results_batch3[k,1,param_set] <- k
+      
+      # at value
+      results_batch3[k,2,param_set] <- at[i]
+      
+      # bb value
+      results_batch3[k,3,param_set] <- bb[j]
+      
+      # initial budget
+      results_batch3[k,4,param_set] <- bud_ini
+      
+      # initial resource pop
+      results_batch3[k,5,param_set] <- res_ini
+      
+      # growth rate
+      results_batch3[k,6, param_set] <- lbd
+      
+      # has extinction occured?
+      results_batch3[k,7,param_set] <- ifelse(final_ts < dim(sim$paras)[1], 1, 0)
+      
+      if (results_batch3[k,7,param_set] != 0) {
+        # actual pop deviation from target
+        results_batch3[k,8,param_set] <- abs(dim(sim$resource[[final_ts-1]])[1]/man_tar - 1)
+        
+        # total final yield
+        results_batch3[k,9,param_set] <- sum(sim$agents[[final_ts-1]][,16])
+        
+        # maximal difference between users yield
+        results_batch3[k,10,param_set] <- round((max(sim$agents[[final_ts-1]][,16]) - min(sim$agents[[final_ts-1]][-1,16]))/max(sim$agents[[final_ts-1]][,16]),2)
+        
+        # timesteps spend inactive?
+        results_batch3[k,11,param_set] <- round(final_ts-sum(sim$paras[,107]),1)
+      }
+      else {
+        # actual pop deviation from target in absolute values
+        results_batch3[k,8,param_set] <- abs(dim(sim$resource[[final_ts]])[1]/man_tar - 1)
+        
+        # total final yield
+        results_batch3[k,9,param_set] <- sum(sim$agents[[final_ts]][,16])
+        
+        # maximal difference between users yield
+        results_batch3[k,10,param_set] <- round((max(sim$agents[[final_ts]][,16]) - min(sim$agents[[final_ts]][-1,16]))/max(sim$agents[[final_ts]][,16]),2)
+        
+        # timesteps spend inactive?
+        results_batch3[k,11,param_set] <- round(length(sim$paras[,107])-sum(sim$paras[,107]),1)
+      }
+    }
+    
+    # increment tracker
+    param_set <- param_set + 1
+  }
+}
+
+# tableau de stats
+for (i in 1:dim(results_batch3)[3]) {
+  avrg_results_batch3[i,1] <- dim(results_batch3)[1]
+  for (j in 2:6) {
+    avrg_results_batch3[i,j] <- results_batch3[1,j,i]
+  }
+  avrg_results_batch3[i,7] <- round(sum(results_batch3[,7,i])/dim(results_batch3)[1],2)
+  zz <- 0
+  for (k in 8:dim(results_batch3)[2]) {
+    avrg_results_batch3[i,k+zz] <- mean(results_batch3[,k,i])
+    avrg_results_batch3[i,k+zz+1] <- sd(results_batch3[,k,i])
+    avrg_results_batch3[i,k+zz+2] <- 1.86*avrg_results_batch3[i,k+zz+1]/sqrt(rep)
+    zz <- zz + 2
+  }
+}
+avrg_results_batch3
+
+write.csv(avrg_results_batch3, file = "batch3.csv", row.names = F)
+
+#### trace des figures ####
+
+# deviation de la pop reelle en fonction du action threshold
+figb3_tab <- subset(avrg_results_batch3, bb == 0.1)
+
+#' Create the two plots.
+plot1 <- as.data.frame(figb3_tab) %>%
+  select(as.factor(at), act_dev, act_dev_sd) %>%
+  na.omit() %>%
+  ggplot() +
+  geom_errorbar(aes(x = at, ymin=act_dev*100-act_dev_sd*100/2, ymax=act_dev*100+act_dev_sd*100/2),
+                width=.01, colour = "grey2") +
+  geom_point(aes(x = at, y = act_dev*100), size = 5, alpha = 1, colour="black", fill = "light green", stroke = 1, shape = 21) +
+  ylab("Actual pop deviation from target (%)") +
+  #xlab("Action Threshold Value (% of population target)")
+  theme_gray(base_size = 15) +
+  theme(axis.title.x = element_blank(), axis.line.y = element_line(size = 1, colour = "grey50"))
+
+plot2 <- as.data.frame(figb3_tab) %>%
+  select(as.factor(at), fin_yield, fin_yield_sd) %>%
+  na.omit() %>%
+  ggplot() +
+  geom_errorbar(aes(x = at, ymin=fin_yield/100-fin_yield_sd/100/2, ymax=fin_yield/100+fin_yield_sd/100/2),
+                width=.01,
+                colour="grey2") +
+  geom_point(aes(x = at, y = fin_yield/100), size = 5, alpha = 1, colour="black", fill = "orange1", stroke = 1, shape = 21) +
+  ylab("Users final total yield (in k??)") +
+  xlab("Action threshold value (% of pop target)") +
+  theme_gray(base_size = 15) +
+  theme(axis.line = element_line(size = 1, colour = "grey50"))
+#theme(axis.title.x = "Action threshold value (% of pop target)")
+
+grid.newpage()
+grid.draw(rbind(ggplotGrob(plot1), ggplotGrob(plot2), size = "last"))
+
+# without labels and big features
+
+plot1 <- as.data.frame(figb3_tab) %>%
+  select(as.factor(at), act_dev, act_dev_sd) %>%
+  na.omit() %>%
+  ggplot() +
+  geom_errorbar(aes(x = at, ymin=act_dev*100-act_dev_sd*100/2, ymax=act_dev*100+act_dev_sd*100/2),
+                width=.01,colour = "grey2") +
+  geom_point(aes(x = at, y = act_dev*100), size = 7, alpha = 1, colour="black", fill = "light green", stroke = 1, shape = 21)+
+  #ylab("Users final total yield (in k??)") +
+  #xlab("Action threshold value (% of pop target)") +
+  theme_gray(base_size = 20) +
+  theme(axis.title.x = element_blank(), axis.title.y = element_blank(), axis.line = element_line(size = 1, colour = "grey50"))
+
+plot2 <- as.data.frame(figb3_tab) %>%
+  select(as.factor(at), fin_yield, fin_yield_sd) %>%
+  na.omit() %>%
+  ggplot() +
+  geom_errorbar(aes(x = at, ymin=fin_yield/100-fin_yield_sd/100/2, ymax=fin_yield/100+fin_yield_sd/100/2),
+                width=.01,
+                colour="grey2") +
+  geom_point(aes(x = at, y = fin_yield/100), size = 5, alpha = 1, colour="black", fill = "orange1", stroke = 1, shape = 21) +
+  ylab("Users final total yield (in k??)") +
+  xlab("Action threshold value (% of pop target)") +
+  theme_gray(base_size = 15) +
+  theme(axis.line = element_line(size = 1, colour = "grey50"))
+#theme(axis.title.x = "Action threshold value (% of pop target)")
+
+grid.newpage()
+grid.draw(rbind(ggplotGrob(plot1), ggplotGrob(plot2), size = "last"))
+
+#### batch 4 : narrow down action threshold values ####
+
+#### simul ####
+
+# un vecteur avec des valeurs de AT
+at <- seq(0,0.2,0.05)
+
+# un pour le budget bonus
+bb <- seq(0,0.1,0.1)
+
+# un nombre de ts
+ts <- 20
+
+# un nombre de replicats
+rep <- 30
+
+# un budget initial
+bud_ini <- 1000
+
+# initial resources
+res_ini <- 1000
+
+# manager target
+man_tar <- 1000
+
+# growth rate
+lbd <- 0.27
+
+# une structure pour acceuillir les resultats
+# est-ce qu'on ferait pas un objet avec n = at*bb couches
+columns <- c("rep", "at", "bb", "init_budg", "init_res", "lambda", "extinct", "act_dev", "final yield", "max_diff_yield", "inac_ts") 
+results_batch4 <- array(data=NA, dim = c(rep, length(columns), length(at)*length(bb)), dimnames = list(NULL,columns,NULL))
+
+# preparer un tableau pour les stats
+avrg_columns <- c("rep", "at", "bb", "init_budg", "init_res", "lambda", "ext_prob", "act_dev", "act_dev_sd", "act_dev_95ci", "fin_yield", "fin_yield_sd", "fin_yield_95ci", "max_diff_yield", "max_diff_yield_sd", "max_diff_yield_95ci", "inac_ts", "inac_ts_sd", "inac_ts_95ci")
+avrg_results_batch4 <- matrix(data = NA, nrow = length(at)*length(bb), ncol = length(avrg_columns), dimnames = list(NULL,avrg_columns))
+
+# bon maintenant faut balancer les simuls
+
+# initialize a param combo tracker
+param_set <- 1
+
+# sim loop
+for (i in 1:length(at)) {
+  for (j in 1:length(bb)) {
+    for (k in 1:rep) {
+      # lancer simul
+      sim <- gmse(land_ownership = TRUE, stakeholders = 3, observe_type = 0, manage_target = man_tar, RESOURCE_ini = res_ini,
+                  user_budget = bud_ini, manager_budget = bud_ini, lambda = lbd,
+                  scaring = F, plotting = F, time_max = ts, action_thres = at[i], budget_bonus = bb[j])
+      
+      # last time step
+      final_ts <- length(which(sim$paras[,1] != 0))
+      
+      # ecrire dans results les infos correspondantes
+      # replicate
+      results_batch4[k,1,param_set] <- k
+      
+      # at value
+      results_batch4[k,2,param_set] <- at[i]
+      
+      # bb value
+      results_batch4[k,3,param_set] <- bb[j]
+      
+      # initial budget
+      results_batch4[k,4,param_set] <- bud_ini
+      
+      # initial resource pop
+      results_batch4[k,5,param_set] <- res_ini
+      
+      # growth rate
+      results_batch4[k,6, param_set] <- lbd
+      
+      # has extinction occured?
+      results_batch4[k,7,param_set] <- ifelse(final_ts < dim(sim$paras)[1], 1, 0)
+      
+      if (results_batch4[k,7,param_set] != 0) {
+        # actual pop deviation from target
+        results_batch4[k,8,param_set] <- abs(dim(sim$resource[[final_ts-1]])[1]/man_tar - 1)
+        
+        # total final yield
+        results_batch4[k,9,param_set] <- sum(sim$agents[[final_ts-1]][,16])
+        
+        # maximal difference between users yield
+        results_batch4[k,10,param_set] <- round((max(sim$agents[[final_ts-1]][,16]) - min(sim$agents[[final_ts-1]][-1,16]))/max(sim$agents[[final_ts-1]][,16]),2)
+        
+        # timesteps spend inactive?
+        results_batch4[k,11,param_set] <- round(final_ts-sum(sim$paras[,107]),1)
+      }
+      else {
+        # actual pop deviation from target in absolute values
+        results_batch4[k,8,param_set] <- abs(dim(sim$resource[[final_ts]])[1]/man_tar - 1)
+        
+        # total final yield
+        results_batch4[k,9,param_set] <- sum(sim$agents[[final_ts]][,16])
+        
+        # maximal difference between users yield
+        results_batch4[k,10,param_set] <- round((max(sim$agents[[final_ts]][,16]) - min(sim$agents[[final_ts]][-1,16]))/max(sim$agents[[final_ts]][,16]),2)
+        
+        # timesteps spend inactive?
+        results_batch4[k,11,param_set] <- round(length(sim$paras[,107])-sum(sim$paras[,107]),1)
+      }
+    }
+    
+    # increment tracker
+    param_set <- param_set + 1
+  }
+}
+
+# tableau de stats
+for (i in 1:dim(results_batch4)[3]) {
+  avrg_results_batch4[i,1] <- dim(results_batch4)[1]
+  for (j in 2:6) {
+    avrg_results_batch4[i,j] <- results_batch4[1,j,i]
+  }
+  avrg_results_batch4[i,7] <- round(sum(results_batch4[,7,i])/dim(results_batch4)[1],2)
+  zz <- 0
+  for (k in 8:dim(results_batch4)[2]) {
+    avrg_results_batch4[i,k+zz] <- mean(results_batch4[,k,i])
+    avrg_results_batch4[i,k+zz+1] <- sd(results_batch4[,k,i])
+    avrg_results_batch4[i,k+zz+2] <- 1.86*avrg_results_batch4[i,k+zz+1]/sqrt(rep)
+    zz <- zz + 2
+  }
+}
+View(avrg_results_batch4)
+
+write.csv(avrg_results_batch4, file = "batch4.csv", row.names = F)
+
+#### trace des figures ####
+
+# deviation de la pop reelle en fonction du action threshold
+figb4_tab <- subset(avrg_results_batch4, bb == 0.1)
+
+#' Create the two plots.
+plot1 <- as.data.frame(figb4_tab) %>%
+  select(as.factor(at), act_dev, act_dev_sd) %>%
+  na.omit() %>%
+  ggplot() +
+  geom_errorbar(aes(x = at, ymin=act_dev*100-act_dev_sd*100/2, ymax=act_dev*100+act_dev_sd*100/2),
+                width=.01, colour = "grey2") +
+  geom_point(aes(x = at, y = act_dev*100), size = 5, alpha = 1, colour="black", fill = "light green", stroke = 1, shape = 21) +
+  ylab("Actual pop deviation from target (%)") +
+  #xlab("Action Threshold Value (% of population target)")
+  theme_gray(base_size = 15) +
+  theme(axis.title.x = element_blank(), axis.line.y = element_line(size = 1, colour = "grey50"))
+
+plot2 <- as.data.frame(figb4_tab) %>%
+  select(as.factor(at), fin_yield, fin_yield_sd) %>%
+  na.omit() %>%
+  ggplot() +
+  geom_errorbar(aes(x = at, ymin=fin_yield/100-fin_yield_sd/100/2, ymax=fin_yield/100+fin_yield_sd/100/2),
+                width=.01,
+                colour="grey2") +
+  geom_point(aes(x = at, y = fin_yield/100), size = 5, alpha = 1, colour="black", fill = "orange1", stroke = 1, shape = 21) +
+  ylab("Users final total yield (in k??)") +
+  xlab("Action threshold value (% of pop target)") +
+  theme_gray(base_size = 15) +
+  theme(axis.line = element_line(size = 1, colour = "grey50"))
+#theme(axis.title.x = "Action threshold value (% of pop target)")
+
+grid.newpage()
+grid.draw(rbind(ggplotGrob(plot1), ggplotGrob(plot2), size = "last"))
+
+# without labels and big features
+
+plot1 <- as.data.frame(figb4_tab) %>%
+  select(as.factor(at), act_dev, act_dev_sd) %>%
+  na.omit() %>%
+  ggplot() +
+  geom_errorbar(aes(x = at, ymin=act_dev*100-act_dev_sd*100/2, ymax=act_dev*100+act_dev_sd*100/2),
+                width=.01,colour = "grey2") +
+  geom_point(aes(x = at, y = act_dev*100), size = 7, alpha = 1, colour="black", fill = "light green", stroke = 1, shape = 21)+
+  #ylab("Users final total yield (in k??)") +
+  #xlab("Action threshold value (% of pop target)") +
+  theme_gray(base_size = 20) +
+  theme(axis.title.x = element_blank(), axis.title.y = element_blank(), axis.line = element_line(size = 1, colour = "grey50"))
+
+plot2 <- as.data.frame(figb4_tab) %>%
+  select(as.factor(at), fin_yield, fin_yield_sd) %>%
+  na.omit() %>%
+  ggplot() +
+  geom_errorbar(aes(x = at, ymin=fin_yield/100-fin_yield_sd/100/2, ymax=fin_yield/100+fin_yield_sd/100/2),
+                width=.01,
+                colour="grey2") +
+  geom_point(aes(x = at, y = fin_yield/100), size = 5, alpha = 1, colour="black", fill = "orange1", stroke = 1, shape = 21) +
+  #ylab("Users final total yield (in k??)") +
+  #xlab("Action threshold value (% of pop target)") +
+  theme_gray(base_size = 15) +
+  theme(axis.title.x = element_blank(), axis.title.y = element_blank(), axis.line = element_line(size = 1, colour = "grey50"))
+
+grid.newpage()
+grid.draw(rbind(ggplotGrob(plot1), ggplotGrob(plot2), size = "last"))
+
+#### batch5 : poster figure ####
+
+#### simul ####
+
+# un vecteur avec des valeurs de AT
+at <- seq(0,0.2,0.05)
+
+# un pour le budget bonus
+bb <- seq(0,0.1,0.1)
+
+# un nombre de ts
+ts <- 20
+
+# un nombre de replicats
+rep <- 50
+
+# un budget initial
+bud_ini <- 1000
+
+# initial resources
+res_ini <- 1000
+
+# manager target
+man_tar <- 1000
+
+# growth rate
+lbd <- 0.3
+
+# une structure pour acceuillir les resultats
+# est-ce qu'on ferait pas un objet avec n = at*bb couches
+columns <- c("rep", "at", "bb", "init_budg", "init_res", "lambda", "extinct", "act_dev", "final yield", "max_diff_yield", "inac_ts") 
+results_batch5 <- array(data=NA, dim = c(rep, length(columns), length(at)*length(bb)), dimnames = list(NULL,columns,NULL))
+
+# preparer un tableau pour les stats
+avrg_columns <- c("rep", "at", "bb", "init_budg", "init_res", "lambda", "ext_prob", "act_dev", "act_dev_sd", "act_dev_95ci", "fin_yield", "fin_yield_sd", "fin_yield_95ci", "max_diff_yield", "max_diff_yield_sd", "max_diff_yield_95ci", "inac_ts", "inac_ts_sd", "inac_ts_95ci")
+avrg_results_batch5 <- matrix(data = NA, nrow = length(at)*length(bb), ncol = length(avrg_columns), dimnames = list(NULL,avrg_columns))
+
+# bon maintenant faut balancer les simuls
+
+# initialize a param combo tracker
+param_set <- 1
+
+# sim loop
+for (i in 1:length(at)) {
+  for (j in 1:length(bb)) {
+    for (k in 1:rep) {
+      # lancer simul
+      sim <- gmse(land_ownership = TRUE, stakeholders = 3, observe_type = 0, manage_target = man_tar, RESOURCE_ini = res_ini,
+                  user_budget = bud_ini, manager_budget = bud_ini, lambda = lbd,
+                  scaring = F, plotting = F, time_max = ts, action_thres = at[i], budget_bonus = bb[j])
+      
+      # last time step
+      final_ts <- length(which(sim$paras[,1] != 0))
+      
+      # ecrire dans results les infos correspondantes
+      # replicate
+      results_batch5[k,1,param_set] <- k
+      
+      # at value
+      results_batch5[k,2,param_set] <- at[i]
+      
+      # bb value
+      results_batch5[k,3,param_set] <- bb[j]
+      
+      # initial budget
+      results_batch5[k,4,param_set] <- bud_ini
+      
+      # initial resource pop
+      results_batch5[k,5,param_set] <- res_ini
+      
+      # growth rate
+      results_batch5[k,6, param_set] <- lbd
+      
+      # has extinction occured?
+      results_batch5[k,7,param_set] <- ifelse(final_ts < dim(sim$paras)[1], 1, 0)
+      
+      if (results_batch5[k,7,param_set] != 0) {
+        # actual pop deviation from target
+        results_batch5[k,8,param_set] <- abs(dim(sim$resource[[final_ts-1]])[1]/man_tar - 1)
+        
+        # total final yield
+        results_batch5[k,9,param_set] <- sum(sim$agents[[final_ts-1]][,16])
+        
+        # maximal difference between users yield
+        results_batch5[k,10,param_set] <- round((max(sim$agents[[final_ts-1]][,16]) - min(sim$agents[[final_ts-1]][-1,16]))/max(sim$agents[[final_ts-1]][,16]),2)
+        
+        # timesteps spend inactive?
+        results_batch5[k,11,param_set] <- round(final_ts-sum(sim$paras[,107]),1)
+      }
+      else {
+        # actual pop deviation from target in absolute values
+        results_batch5[k,8,param_set] <- abs(dim(sim$resource[[final_ts]])[1]/man_tar - 1)
+        
+        # total final yield
+        results_batch5[k,9,param_set] <- sum(sim$agents[[final_ts]][,16])
+        
+        # maximal difference between users yield
+        results_batch5[k,10,param_set] <- round((max(sim$agents[[final_ts]][,16]) - min(sim$agents[[final_ts]][-1,16]))/max(sim$agents[[final_ts]][,16]),2)
+        
+        # timesteps spend inactive?
+        results_batch5[k,11,param_set] <- round(length(sim$paras[,107])-sum(sim$paras[,107]),1)
+      }
+    }
+    
+    # increment tracker
+    param_set <- param_set + 1
+  }
+}
+
+# tableau de stats
+for (i in 1:dim(results_batch5)[3]) {
+  avrg_results_batch5[i,1] <- dim(results_batch5)[1]
+  for (j in 2:6) {
+    avrg_results_batch5[i,j] <- results_batch5[1,j,i]
+  }
+  avrg_results_batch5[i,7] <- round(sum(results_batch5[,7,i])/dim(results_batch5)[1],2)
+  zz <- 0
+  for (k in 8:dim(results_batch5)[2]) {
+    avrg_results_batch5[i,k+zz] <- mean(results_batch5[,k,i])
+    avrg_results_batch5[i,k+zz+1] <- sd(results_batch5[,k,i])
+    avrg_results_batch5[i,k+zz+2] <- 1.86*avrg_results_batch5[i,k+zz+1]/sqrt(rep)
+    zz <- zz + 2
+  }
+}
+View(avrg_results_batch5)
+
+write.csv(avrg_results_batch5, file = "batch5.csv", row.names = F)
+
+#### trace des figures ####
+
+# deviation de la pop reelle en fonction du action threshold
+figb5_tab <- subset(avrg_results_batch5)
+
+#' Create the two plots.
+plot1 <- as.data.frame(figb5_tab) %>%
+  select(as.factor(at), act_dev, act_dev_sd) %>%
+  na.omit() %>%
+  ggplot() +
+  geom_errorbar(aes(x = at, ymin=act_dev*100-act_dev_sd*100/2, ymax=act_dev*100+act_dev_sd*100/2),
+                width=.01, colour = "grey2") +
+  geom_point(aes(x = at, y = act_dev*100), size = 5, alpha = 1, colour="black", fill = "light green", stroke = 1, shape = 21) +
+  ylab("Actual pop deviation from target (%)") +
+  #xlab("Action Threshold Value (% of population target)")
+  theme_gray(base_size = 15) +
+  theme(axis.title.x = element_blank(), axis.line.y = element_line(size = 1, colour = "grey50"))
+
+plot2 <- as.data.frame(figb5_tab) %>%
+  select(as.factor(at), fin_yield, fin_yield_sd) %>%
+  na.omit() %>%
+  ggplot() +
+  geom_errorbar(aes(x = at, ymin=fin_yield/100-fin_yield_sd/100/2, ymax=fin_yield/100+fin_yield_sd/100/2),
+                width=.01,
+                colour="grey2") +
+  geom_point(aes(x = at, y = fin_yield/100), size = 5, alpha = 1, colour="black", fill = "orange1", stroke = 1, shape = 21) +
+  ylab("Users final total yield (in k??)") +
+  xlab("Action threshold value (% of pop target)") +
+  theme_gray(base_size = 15) +
+  theme(axis.line = element_line(size = 1, colour = "grey50"))
+#theme(axis.title.x = "Action threshold value (% of pop target)")
+
+grid.newpage()
+grid.draw(rbind(ggplotGrob(plot1), ggplotGrob(plot2), size = "last"))
+
+# without labels and big features
+
+plot1 <- as.data.frame(figb5_tab) %>%
+  select(as.factor(at), as.factor(bb), act_dev, act_dev_sd) %>%
+  na.omit() %>%
+  ggplot() +
+  geom_errorbar(aes(x = at, ymin=act_dev*100-act_dev_sd*100/2, ymax=act_dev*100+act_dev_sd*100/2, group = bb),
+                width=.02, colour = "grey2") +
+  geom_point(aes(x = at, y = act_dev*100, fill = as.factor(bb)),
+             size = 7, alpha = 1, colour="black", stroke = 1, shape = 21,
+             position = position_dodge(width = 0.05)) +
+  #facet_wrap(~as.factor(at)) +
+  #ylab("Users final total yield (in k??)") +
+  #xlab("Action threshold value (% of pop target)") +
+  theme_gray(base_size = 20) +
+  theme(axis.title.x = element_blank(), axis.title.y = element_blank(),
+        legend.position='none',
+        axis.line.y = element_line(size = 1, colour = "grey50"))
+plot1
+
+plot2 <- as.data.frame(figb5_tab) %>%
+  select(as.factor(at), fin_yield, fin_yield_sd) %>%
+  na.omit() %>%
+  ggplot() +
+  geom_errorbar(aes(x = at, ymin=fin_yield/100-fin_yield_sd/100/2, ymax=fin_yield/100+fin_yield_sd/100/2),
+                width=.01,
+                colour="grey2") +
+  geom_point(aes(x = at, y = fin_yield/100), size = 5, alpha = 1, colour="black", fill = "orange1", stroke = 1, shape = 21) +
+  #ylab("Users final total yield (in k??)") +
+  #xlab("Action threshold value (% of pop target)") +
+  theme_gray(base_size = 15) +
+  theme(axis.title.x = element_blank(), axis.title.y = element_blank(), axis.line = element_line(size = 1, colour = "grey50"))
+
+grid.newpage()
+grid.draw(rbind(ggplotGrob(plot1), ggplotGrob(plot2), size = "last"))
+
+# nvlle tentative
+plotbb1 <- ggplot(as.data.frame(figb5_tab), aes(x=as.factor(at), y=act_dev*100, group=as.factor(bb), fill = as.factor(bb))) +
+           #scale_colour_manual(name="", 
+           #                    bb = c("0.0"="yellow", "0.1"="orange"))
+           geom_errorbar(aes(ymin=act_dev*100-act_dev_sd*100/2, ymax=act_dev*100+act_dev_sd*100/2, group = as.factor(bb)),  
+                position=position_dodge(0.6),
+                colour = "grey40", width=0.4) +
+           geom_point(size = 10, alpha = 1, colour="black", stroke = 1, shape = 21,
+                position = position_dodge(width = 0.6)) +
+  theme_gray(base_size = 30) +
+  theme(axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position='none',
+        axis.line.y = element_line(size = 1, colour = "grey50"))
+
+plotbb2 <- ggplot(as.data.frame(figb5_tab), aes(x=as.factor(at), y=fin_yield/100, group=as.factor(bb), fill = as.factor(bb))) +
+  #scale_colour_manual(name="", 
+  #                    bb = c("0.0"="yellow", "0.1"="orange"))
+  geom_errorbar(aes(ymin=fin_yield/100-fin_yield_sd/100/2, ymax=fin_yield/100+fin_yield_sd/100/2, group = as.factor(bb)),  
+                position=position_dodge(0.6),
+                colour = "grey40", width=0.4) +
+  geom_point(size = 10, alpha = 1, colour="black", stroke = 1, shape = 21,
+             position = position_dodge(width = 0.6)) +
+  theme_gray(base_size = 40) +
+  theme(axis.title.x = element_blank(), axis.title.y = element_blank(),
+        legend.position='none',
+        axis.line = element_line(size = 1, colour = "grey50"))
+
+grid.newpage()
+grid.draw(rbind(ggplotGrob(plotbb1), ggplotGrob(plotbb2), size = "last"))
+
+#### batch5 : poster figure ####
+
+#### simul ####
+
+# un vecteur avec des valeurs de AT
+at <- seq(0,0.2,0.05)
+
+# un pour le budget bonus
+bb <- seq(0,0.1,0.1)
+
+# un nombre de ts
+ts <- 20
+
+# un nombre de replicats
+rep <- 50
+
+# un budget initial
+bud_ini <- 1000
+
+# initial resources
+res_ini <- 1000
+
+# manager target
+man_tar <- 1000
+
+# growth rate
+lbd <- 0.27
+
+# une structure pour acceuillir les resultats
+# est-ce qu'on ferait pas un objet avec n = at*bb couches
+columns <- c("rep", "at", "bb", "init_budg", "init_res", "lambda", "extinct", "act_dev", "final yield", "max_diff_yield", "inac_ts") 
+results_batch6 <- array(data=NA, dim = c(rep, length(columns), length(at)*length(bb)), dimnames = list(NULL,columns,NULL))
+
+# preparer un tableau pour les stats
+avrg_columns <- c("rep", "at", "bb", "init_budg", "init_res", "lambda", "ext_prob", "act_dev", "act_dev_sd", "act_dev_95ci", "fin_yield", "fin_yield_sd", "fin_yield_95ci", "max_diff_yield", "max_diff_yield_sd", "max_diff_yield_95ci", "inac_ts", "inac_ts_sd", "inac_ts_95ci")
+avrg_results_batch6 <- matrix(data = NA, nrow = length(at)*length(bb), ncol = length(avrg_columns), dimnames = list(NULL,avrg_columns))
+
+# bon maintenant faut balancer les simuls
+
+# initialize a param combo tracker
+param_set <- 1
+
+# sim loop
+for (i in 1:length(at)) {
+  for (j in 1:length(bb)) {
+    for (k in 1:rep) {
+      # lancer simul
+      sim <- gmse(land_ownership = TRUE, stakeholders = 3, observe_type = 0, manage_target = man_tar, RESOURCE_ini = res_ini,
+                  user_budget = bud_ini, manager_budget = bud_ini, lambda = lbd,
+                  scaring = F, plotting = F, time_max = ts, action_thres = at[i], budget_bonus = bb[j])
+      
+      # last time step
+      final_ts <- length(which(sim$paras[,1] != 0))
+      
+      # ecrire dans results les infos correspondantes
+      # replicate
+      results_batch6[k,1,param_set] <- k
+      
+      # at value
+      results_batch6[k,2,param_set] <- at[i]
+      
+      # bb value
+      results_batch6[k,3,param_set] <- bb[j]
+      
+      # initial budget
+      results_batch6[k,4,param_set] <- bud_ini
+      
+      # initial resource pop
+      results_batch6[k,5,param_set] <- res_ini
+      
+      # growth rate
+      results_batch6[k,6, param_set] <- lbd
+      
+      # has extinction occured?
+      results_batch6[k,7,param_set] <- ifelse(final_ts < dim(sim$paras)[1], 1, 0)
+      
+      if (results_batch6[k,7,param_set] != 0) {
+        # actual pop deviation from target
+        results_batch6[k,8,param_set] <- abs(dim(sim$resource[[final_ts-1]])[1]/man_tar - 1)
+        
+        # total final yield
+        results_batch6[k,9,param_set] <- sum(sim$agents[[final_ts-1]][,16])
+        
+        # maximal difference between users yield
+        results_batch6[k,10,param_set] <- round((max(sim$agents[[final_ts-1]][,16]) - min(sim$agents[[final_ts-1]][-1,16]))/max(sim$agents[[final_ts-1]][,16]),2)
+        
+        # timesteps spend inactive?
+        results_batch6[k,11,param_set] <- round(final_ts-sum(sim$paras[,107]),1)
+      }
+      else {
+        # actual pop deviation from target in absolute values
+        results_batch6[k,8,param_set] <- abs(dim(sim$resource[[final_ts]])[1]/man_tar - 1)
+        
+        # total final yield
+        results_batch6[k,9,param_set] <- sum(sim$agents[[final_ts]][,16])
+        
+        # maximal difference between users yield
+        results_batch6[k,10,param_set] <- round((max(sim$agents[[final_ts]][,16]) - min(sim$agents[[final_ts]][-1,16]))/max(sim$agents[[final_ts]][,16]),2)
+        
+        # timesteps spend inactive?
+        results_batch6[k,11,param_set] <- round(length(sim$paras[,107])-sum(sim$paras[,107]),1)
+      }
+    }
+    
+    # increment tracker
+    param_set <- param_set + 1
+  }
+}
+
+# tableau de stats
+for (i in 1:dim(results_batch6)[3]) {
+  avrg_results_batch6[i,1] <- dim(results_batch6)[1]
+  for (j in 2:6) {
+    avrg_results_batch6[i,j] <- results_batch6[1,j,i]
+  }
+  avrg_results_batch6[i,7] <- round(sum(results_batch6[,7,i])/dim(results_batch6)[1],2)
+  zz <- 0
+  for (k in 8:dim(results_batch6)[2]) {
+    avrg_results_batch6[i,k+zz] <- mean(results_batch6[,k,i])
+    avrg_results_batch6[i,k+zz+1] <- sd(results_batch6[,k,i])
+    avrg_results_batch6[i,k+zz+2] <- 1.86*avrg_results_batch6[i,k+zz+1]/sqrt(rep)
+    zz <- zz + 2
+  }
+}
+View(avrg_results_batch6)
+
+write.csv(avrg_results_batch6, file = "batch6.csv", row.names = F)
+
+#### trace des figures ####
+
+# deviation de la pop reelle en fonction du action threshold
+figb6_tab <- avrg_results_batch6
+
+# without labels and big features
+
+plotbb1 <- ggplot(as.data.frame(figb6_tab), aes(x=as.factor(at), y=act_dev*100, group=as.factor(bb), fill = as.factor(bb))) +
+  #scale_colour_manual(name="", 
+  #                    bb = c("0.0"="yellow", "0.1"="orange"))
+  geom_errorbar(aes(ymin=act_dev*100-act_dev_sd*100/2, ymax=act_dev*100+act_dev_sd*100/2, group = as.factor(bb)),  
+                position=position_dodge(0.6),
+                colour = "grey40", width=0.4) +
+  geom_point(size = 6, alpha = 1, colour="black", stroke = 1, shape = 21,
+             position = position_dodge(width = 0.6)) +
+  theme_gray(base_size = 50) +
+  theme(axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position='none',
+        axis.line.y = element_line(size = 1, colour = "grey50"))
+
+plotbb2 <- ggplot(as.data.frame(figb6_tab), aes(x=as.factor(at), y=fin_yield/100, group=as.factor(bb), fill = as.factor(bb))) +
+  #scale_colour_manual(name="", 
+  #                    bb = c("0.0"="yellow", "0.1"="orange"))
+  geom_errorbar(aes(ymin=fin_yield/100-fin_yield_sd/100/2, ymax=fin_yield/100+fin_yield_sd/100/2, group = as.factor(bb)),  
+                position=position_dodge(0.6),
+                colour = "grey40", width=0.4) +
+  geom_point(size = 6, alpha = 1, colour="black", stroke = 1, shape = 21,
+             position = position_dodge(width = 0.6)) +
+  theme_gray(base_size = 50) +
+  theme(axis.title.x = element_blank(), axis.title.y = element_blank(),
+        legend.position='none',
+        axis.line = element_line(size = 1, colour = "grey50"))
+
+grid.newpage()
+grid.draw(rbind(ggplotGrob(plotbb1), ggplotGrob(plotbb2), size = "last"))
